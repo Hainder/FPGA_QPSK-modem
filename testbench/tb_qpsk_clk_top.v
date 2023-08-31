@@ -17,8 +17,8 @@ module tb_qpsk_clk_top();
     always #10 clk = ~clk;
     
     qpsk_clk_top
-    #(.HEADER(8'hcc),    //帧头
-      .CNT_MAX(26'd49_999_99)) //仿真中100ms更新一次数据
+    #(.HEADER(8'hcc),    //header
+      .CNT_MAX(26'd49_999_99)) //Data updated once every 100ms in simulation
     qpsk_clk_top_inst
     (
         .clk            (clk    ),  //50MHz

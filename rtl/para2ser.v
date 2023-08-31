@@ -1,9 +1,9 @@
 
 //////////////////////////////////////////////////////////////////////////////////
-// Dependencies: 将输入的40bit并行数据转换为串行输出
-// 并行数据的高位先出
-// 输出码元速率为clk/DIV
-// 默认配置:clk为50MHz,DIV = 10000,输出码元速率即为5kHz
+// Dependencies: Converts input 40bit parallel data to serial output
+// High First Out for Parallel Data
+// Output code element rate is clk/DIV
+// Default configuration: clk is 50MHz, DIV = 10000, output code rate is 5kHz.
 //////////////////////////////////////////////////////////////////////////////////
 module para2ser
     #(parameter DIV = 14'd10000)
@@ -15,10 +15,10 @@ module para2ser
         output reg          ser_o       
     );
     
-    //计时器，每次计数到DIV-1,ser_o更新1bit数据
+    //Timer, each time count to DIV-1,ser_o update 1bit data
     reg [13:0]  div_cnt;  
     
-    //记录当前要输出的bit位
+    //Record the current bit to be output
     reg [5:0]   bit_cnt;
     
     //div_cnt

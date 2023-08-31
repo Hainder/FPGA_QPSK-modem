@@ -14,7 +14,7 @@ module tb_qpsk_mod();
         rst_n <= 1'b1;
     end
     
-    always #10 clk = ~clk; //50Mhz时钟
+    always #10 clk = ~clk; //50Mhz clock
     
     qpsk_mod qpsk_mod_inst
     (

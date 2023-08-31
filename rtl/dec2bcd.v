@@ -7,22 +7,22 @@ module dec2bcd(
     output reg[3:0] ten     
     );
     
-    parameter SHIFT_CNT_MAX = 4'd8;   //移位次数，与dec_in的长度保持一致
-    parameter BCD_BIT_CNT = 4'd8; //输出的BCD码的位数，也是一开始补零的数量
+    parameter SHIFT_CNT_MAX = 4'd8;   //Number of shifts, consistent with the length of dec_in
+    parameter BCD_BIT_CNT = 4'd8; //The number of bits in the output BCD code is also the number of complementary zeros at the beginning of the process.
     
-    //首先将输入数据补零，每个时钟周期都对数据进行左移，左移后，每个BCD字节的大小如果大于4则加3
-    //重复以上操作，直到所有输入数据移入完毕，本次时钟实验就是向左移动7次即可
+    //The input data is first zeroed out, and the data is left-shifted every clock cycle; after the left-shift, the size of each BCD byte is increased by three if it is greater than four.
+    //Repeat the above operation until all the input data is moved in, this clock experiment is to move to the left 7 times can be
     
-    reg [BCD_BIT_CNT+7:0] shift_data; //处理过程的中间数据，先要进行补0
-    reg [3:0]   shift_cnt;//移位次数
-    reg         shift_flag; //移位标志，为1时移位，0时比较
+    reg [BCD_BIT_CNT+7:0] shift_data; //The intermediate data of the process is first made up to 0
+    reg [3:0]   shift_cnt;//Number of shifts
+    reg         shift_flag; //Shift flag, 1 for shift, 0 for compare
     
     //shift_flag
     always @ (posedge clk or negedge rst_n) begin
         if(!rst_n) begin
-            shift_flag <= 1'b0;         //起始为0，补零装载shift_data
+            shift_flag <= 1'b0;         //Start at 0, load shift_data with complementary zeros
         end else begin
-            shift_flag <= ~shift_flag;   //移位操作和判断操作依次进行
+            shift_flag <= ~shift_flag;   //The shift operation and the judgment operation are performed sequentially
         end
     
     end
@@ -31,7 +31,7 @@ module dec2bcd(
     always @ (posedge clk or negedge rst_n) begin
         if(!rst_n) begin
             shift_cnt <= 0;
-        end else if((shift_cnt == SHIFT_CNT_MAX) && shift_flag) begin  //移位次数达到计数最大值
+        end else if((shift_cnt == SHIFT_CNT_MAX) && shift_flag) begin  //Shift count reaches count maximum
             shift_cnt <= 0;
         end else if(shift_flag) begin
             shift_cnt <= shift_cnt + 1; 
@@ -40,16 +40,16 @@ module dec2bcd(
         end
     end 
     
-    //shift_data,主要处理的数据
+    //shift_data, main processed data
     always @ (posedge clk or negedge rst_n) begin
         if(!rst_n) begin
-            shift_data <= {8'b0, dec_in};  //复位时补0
+            shift_data <= {8'b0, dec_in};  //Complementary 0 on reset
         end else if((shift_cnt == 0) && (!shift_flag)) begin  
-            shift_data <= {8'b0, dec_in};  //shift_cnt = 0 且shift_flag低电平，代表新的一轮处理过程的开始     
-        end else if(shift_flag) begin   //移位操作
+            shift_data <= {8'b0, dec_in};  //shift_cnt = 0 and shift_flag is low, representing the start of a new round of processing
+        end else if(shift_flag) begin   //(computing) a shift operation
             shift_data <= shift_data << 1;
         end else if((!shift_flag)) begin
-        //判断两个bcd字段是否>4, 若有，加3，否则保持原来的数据
+        //Determine whether the two bcd fields > 4, if so, add 3, otherwise keep the original data
             shift_data[15:12] <= (shift_data[15:12] > 4'd4)?(shift_data[15:12] + 4'b0011):shift_data[15:12];
             shift_data[11:8] <= (shift_data[11:8] > 4'd4)?(shift_data[11:8] + 4'b0011):shift_data[11:8];            
         end else begin
@@ -58,12 +58,12 @@ module dec2bcd(
     
     end
     
-    //unit数据的提取
+    //Extraction of unit data
     always @ (posedge clk or negedge rst_n) begin
         if(!rst_n) begin
             unit <= 4'b0;
         end else if((shift_cnt == SHIFT_CNT_MAX) && (!shift_flag)) begin
-        //数据处理完毕，加载处理后的数据进行输出
+        //Data processing is complete and the processed data is loaded for output
             unit <= shift_data[11:8];
         end else begin
             unit <= unit;

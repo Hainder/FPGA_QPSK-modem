@@ -3,21 +3,21 @@
 // Create Date: 2023/04/22 16:39:39
 // Design Name: 
 // Module Name: phase_detector
-// Description: 载波同步鉴相器
+// Description: carrier synchronous phase discriminator
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
 module phase_detector(
-        input wire  [14:0]  filtered_I  , //I路经过低通滤波后信号
-        input wire  [14:0]  filtered_Q  , //Q路经过低通滤波后信号
+        input wire  [14:0]  filtered_I  , //I low-pass filtered signal
+        input wire  [14:0]  filtered_Q  , //Q-way low-pass filtered signal
         
-        output wire [15:0]  phase_error   //输出的相位误差
+        output wire [15:0]  phase_error   //Output phase error
     );
     
-    wire [14:0] inversed_I  ;   //取反的I路数据
-    wire [14:0] inversed_Q  ;   //取反的Q路数据
+    wire [14:0] inversed_I  ;   //Inverted I channel data
+    wire [14:0] inversed_Q  ;   //Inverted Q-way data
     
-    //依据另一路符号位确定的本通道的信号
+    //Signal of this channel determined by the symbol bit of the other channel
     reg [14:0]  channel_I   ;   
     reg [14:0]  channel_Q   ;
     
@@ -26,7 +26,7 @@ module phase_detector(
     
     //channel_Q
     always @ (*) begin
-        if(filtered_I[14]) begin  //负数
+        if(filtered_I[14]) begin  //negative number
             channel_Q = inversed_Q;
         end else begin
             channel_Q = filtered_Q;
@@ -34,9 +34,9 @@ module phase_detector(
     end
     
     //channel_I
-    //这里和Q路逻辑相反，使得原来的减法器变成了加法器
+    //Here it is the opposite of the Q-way logic, making the original subtractor into an adder
     always @ (*) begin
-        if(filtered_Q[14]) begin  //负数
+        if(filtered_Q[14]) begin  //negative number
             channel_I = filtered_I;
         end else begin
             channel_I = inversed_I;

@@ -20,8 +20,12 @@ module qpsk_mod
     wire [7:0]  carry_cos   ;   
     wire [31:0] qpsk_i      ;
     wire [31:0] qpsk_q      ;
-    
-    //产生500kHz采样时钟
+    wire [7:0]  carry_sin_unfixed;
+    wire [7:0]  carry_cos_unfixed;
+    wire [7:0]  carry_sin_fixed;
+    wire [7:0]  carry_cos_fixed;
+
+    //Generates 500kHz sample clock
     sam_clk_gen sam_clk_gen_inst(
             .clk        (clk    ),  //50MHz
             .rst_n      (rst_n  ),
@@ -29,9 +33,7 @@ module qpsk_mod
             .clk_o      (clk_500k)
         );
     
-    
-    
-    //串并转换
+    //serial-to-parallel conversion
     para2ser 
     #(.DIV(14'd10000))
     para2ser_inst
@@ -43,10 +45,10 @@ module qpsk_mod
         .ser_o          (ser_data   )
     );
     
-    //I/Q分流
+    //I/Q shunt
     iq_div
-    #(  .IQ_DIV_MAX(8'd100), //采样速率为clk/IQ_DIV_MAX
-        .BIT_SAMPLE(8'd100)  //每个bit采样点数
+    #(  .IQ_DIV_MAX(8'd100), //Sampling rate is clk/IQ_DIV_MAX
+        .BIT_SAMPLE(8'd100)  //Sampling points per bit
     )
     iq_div_inst
     (
@@ -54,11 +56,11 @@ module qpsk_mod
         .rst_n      (rst_n      ),
         .ser_i      (ser_data   ),
 
-        .I          (I      ), //有符号双极性输出
+        .I          (I      ), //Signed Bipolar Outputs
         .Q          (Q      )
     );
     
-    //I路成形滤波
+    //I-Circuit Forming Filter
     rcosfilter rcosfilter_I (
         .aclk(clk_500k),                            // input wire aclk
         .s_axis_data_tvalid(rst_n),                 // input wire s_axis_data_tvalid
@@ -68,7 +70,7 @@ module qpsk_mod
         .m_axis_data_tdata(I_filtered)    // output wire [23 : 0] m_axis_data_tdata
     );
 
-    //Q路成形滤波
+    //Q-Circuit Forming Filtering
     rcosfilter rcosfilter_Q (
         .aclk(clk_500k),                            // input wire aclk
         .s_axis_data_tvalid(rst_n),                 // input wire s_axis_data_tvalid
@@ -78,27 +80,39 @@ module qpsk_mod
         .m_axis_data_tdata(Q_filtered)    // output wire [23 : 0] m_axis_data_tdata
     );  
     
-    //产生sin波形
+    //Generate sin waveform
     dds_sin dds_sin_inst(
         .aclk(clk_500k),                                // input wire aclk
         .aresetn(rst_n),                          // input wire aresetn
         .m_axis_data_tvalid(),    // output wire m_axis_data_tvalid
-        .m_axis_data_tdata(carry_sin),      // output wire [7 : 0] m_axis_data_tdata
+        .m_axis_data_tdata(carry_sin_unfixed),//carry_sin),      // output wire [7 : 0] m_axis_data_tdata
         .m_axis_phase_tvalid(),  // output wire m_axis_phase_tvalid
         .m_axis_phase_tdata()    // output wire [23 : 0] m_axis_phase_tdata
     );
     
-    //产生cos波形
+    //Generate cos waveforms
     dds_cos dds_cos_inst(
         .aclk(clk_500k),                                // input wire aclk
         .aresetn(rst_n),                          // input wire aresetn
         .m_axis_data_tvalid(),    // output wire m_axis_data_tvalid
-        .m_axis_data_tdata(carry_cos),      // output wire [7 : 0] m_axis_data_tdata
+        .m_axis_data_tdata(carry_cos_unfixed),//carry_cos),      // output wire [7 : 0] m_axis_data_tdata
         .m_axis_phase_tvalid(),  // output wire m_axis_phase_tvalid
         .m_axis_phase_tdata()    // output wire [23 : 0] m_axis_phase_tdata
     );
-    
-    //I路滤波后与cos载波相乘
+
+    dds_fixer  u_dds_sin_fixer_i0 (
+        .carry               ( carry_sin_unfixed ),//carry_sin         ),
+        .carry_fixed         ( carry_sin_fixed   )
+    );
+    dds_fixer  u_dds_cos_fixer_i0 (
+        .carry               ( carry_cos_unfixed ),
+        .carry_fixed         ( carry_cos_fixed   )
+    );
+
+    assign carry_sin = carry_sin_unfixed;
+    assign carry_cos = carry_cos_unfixed;
+
+    //I-way filtered and multiplied by the cos carrier
     mul_mod mul_mod_I
     (
         .CLK(clk_500k),  // input wire CLK
@@ -107,7 +121,7 @@ module qpsk_mod
         .P(qpsk_i)      // output wire [31 : 0] P
     );
     
-    //Q路滤波后与sin载波相乘
+    //Q path filtered and multiplied with sin carrier
     mul_mod mul_mod_Q
     (
         .CLK(clk_500k),  // input wire CLK
@@ -116,7 +130,7 @@ module qpsk_mod
         .P(qpsk_q)      // output wire [31 : 0] P
     );  
     
-    //IQ两路信号叠加
+    //IQ two signals superimposed
     assign qpsk = {qpsk_i[31],qpsk_i} + {qpsk_q[31],qpsk_q};
     
     

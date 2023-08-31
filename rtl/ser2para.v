@@ -1,9 +1,9 @@
 //////////////////////////////////////////////////////////////////////////////////
-// Description: 将解调后的串行数据输出转换为40bit并行数据
-//输入的时钟频率为和采样率相同
+// Description: Converts demodulated serial data output to 40bit parallel data
+//The input clock frequency is the same as the sample rate.
 //////////////////////////////////////////////////////////////////////////////////
 module ser2para
-    #(parameter SAMPLE = 100) //每一个bit采样样本数 
+    #(parameter SAMPLE = 100) //Number of samples per bit 
     (
         input wire          clk     ,
         input wire          rst_n   ,
@@ -15,7 +15,7 @@ module ser2para
     reg [7:0]   sample_cnt  ;
     reg [5:0]   bit_cnt     ;
     
-    //暂存处理的并行输出数据，在40bit转换完成后给para_o
+    //Parallel output data processed temporarily and given to para_o after the 40bit conversion is complete
     reg [39:0]  para_o_temp ; 
     
     
@@ -31,10 +31,10 @@ module ser2para
     end
     
     //bit_cnt
-    //设定在sample_cnt == (SAMPLE - 3)时采集para_o的一个bit
+    //Set to capture a bit of para_o at sample_cnt == (SAMPLE - 3)
     always @ (posedge clk or negedge rst_n) begin
         if(rst_n == 1'b0) begin
-            bit_cnt <= 6'd38;  //由于前面抽样判决时刻在数据中间，输入串行数据有两个bit的时间差
+            bit_cnt <= 6'd38;  //Since the previous sampling judgment moments are in the middle of the data, there is a time difference of two bits in the input serial data
         end else if((bit_cnt == 6'd39) && sample_cnt == (SAMPLE - 3)) begin
             bit_cnt <= 6'd0;
         end else if(sample_cnt == (SAMPLE - 3))begin
@@ -59,7 +59,7 @@ module ser2para
     always @ (posedge clk or negedge rst_n) begin
         if(rst_n == 1'b0) begin
             para_o <= 40'b0;
-        end else if(sample_cnt == (SAMPLE - 2) && (bit_cnt == 6'd0)) begin //比para_o_temp采集完成后再延迟一个时钟周期
+        end else if(sample_cnt == (SAMPLE - 2) && (bit_cnt == 6'd0)) begin //Delayed by one clock cycle from the completion of para_o_temp acquisition
             para_o <= para_o_temp;
         end else begin
             para_o <= para_o;

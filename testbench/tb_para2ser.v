@@ -16,7 +16,7 @@ module tb_para2ser();
     
     end
     
-    always #10 clk = ~clk; //50Mhz时钟
+    always #10 clk = ~clk; //50Mhz clock
 
     para2ser
     #(.DIV(14'd12500))

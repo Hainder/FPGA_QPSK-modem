@@ -1,9 +1,9 @@
 `timescale 1ns / 1ps
-//顶层模块,产生时钟数据,并通过QPSK调制解调器进行发送接收
-//这一例子里QPSK调制解调在同一个FPGA设备上实现
+//Top-level module that generates clock data and transmits it to and from the QPSK modem.
+//In this example, QPSK modulation is implemented on the same FPGA device.
 module qpsk_clk_top
-#(parameter HEADER = 8'hcc,   //帧头
-            CNT_MAX = 26'd49_999_999) //测试速度,正常情况下设置为26'd49_999_999时每1s更新一次数据
+#(parameter HEADER = 8'hcc,   //header
+            CNT_MAX = 26'd49_999_999) //Test speed, under normal circumstances set to 26'd49_999_999 when every 1s to update data
 (
     input wire          clk         ,  //50MHz
     input wire          rst_n       ,
@@ -12,21 +12,21 @@ module qpsk_clk_top
     output wire [7:0]   dig         
 );
     wire [32:0]         qpsk    ;
-    wire [7:0]          s_dec   ;  //秒数据
-    wire [7:0]          m_dec   ;  //分数据
-    wire [7:0]          h_dec   ;  //秒数据
+    wire [7:0]          s_dec   ;  //data in seconds
+    wire [7:0]          m_dec   ;  //data in minutes
+    wire [7:0]          h_dec   ;  //data in hours
     wire [39:0]         para_dat;
-    wire [39:0]         para_out;   //输出数据,包含时分秒
+    wire [39:0]         para_out;   //Output data, including hours, minutes and seconds
 
 
     
     
-    //产生时分秒数据
+    //Generate hour, minute and second data
     clk_gen 
     #(.CNT_MAX(CNT_MAX))  
     clk_gen_inst
     (
-        .clk        (clk    ),  //50Mhz时钟
+        .clk        (clk    ),  //50Mhz clock
         .rst_n      (rst_n  ),
 
         .s_dec      (s_dec  ),
@@ -34,9 +34,9 @@ module qpsk_clk_top
         .h_dec      (h_dec  )   
     );
     
-    //将数据加上数据帧头和校验和，形成40bit数据
+    //Add the data to the data frame header and checksum to form 40 bit data
     data_gen
-    #(.HEADER(HEADER))  //帧头
+    #(.HEADER(HEADER))  //header
     data_gen_inst
     (
         .dec_s  (s_dec  ),
@@ -47,7 +47,7 @@ module qpsk_clk_top
     );
     
     
-    //调制
+    //modem
     qpsk_mod qpsk_mod_inst
     (
         .clk        (clk        ),
@@ -57,26 +57,26 @@ module qpsk_clk_top
         .qpsk       (qpsk       )
     );
     
-    //解调
+    //demodulate
     qpsk_demod 
-    #(.HEADER(HEADER))  //帧头    
+    #(.HEADER(HEADER))  //header    
     qpsk_demod_inst
     (
         .clk        (clk        ),
         .rst_n      (rst_n      ),
-        .qpsk       (qpsk[21:0] ),  //经过仿真确认高位没有使用到
+        .qpsk       (qpsk[21:0] ),  //After simulation it was confirmed that the high position was not used to
 
-        .para_out   (para_out   )   //解调后的并行数据输出
+        .para_out   (para_out   )   //Parallel data output after demodulation
     );
     
-    //将解调后的时间数据进行数码管显示
+    //Digital display of demodulated time data.
     time_display time_display
     (
         .clk        (clk    ),
         .rst_n      (rst_n  ),
         .dat_i      (para_out),
 
-        .sel        (sel    ),  //数码管选择信号
-        .dig        (dig    )   //数码管数据
+        .sel        (sel    ),  //Digital tube selection signal
+        .dig        (dig    )   //Digital tube data
     );
 endmodule

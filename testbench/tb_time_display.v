@@ -10,7 +10,7 @@ module tb_time_display();
     initial begin
         clk = 1'b1;
         rst_n <= 1'b0;
-        //帧头和校验和都正确的数据
+        //data whose header and checksum are correct
         //23:24:25
         dat_i <= 40'b1100_1100_0001_0111_0001_1000_0001_1001_0001_0100;
     #20 
@@ -27,7 +27,7 @@ module tb_time_display();
         .rst_n      (rst_n  ),
         .dat_i      (dat_i  ),
 
-        .sel        (sel    ),  //数码管选择信号
-        .dig        (dig    )   //数码管数据
+        .sel        (sel    ),  //Digital tube selection signal
+        .dig        (dig    )   //Digital tube data
     );
 endmodule

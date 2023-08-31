@@ -10,10 +10,10 @@ module tb_data_gen();
     assign dec_m = 8'd24;
     assign dec_s = 8'd25;
     
-    //23时24分25秒
+    //23 hours, 24 minutes, 25 seconds.
 
     data_gen 
-    #(.HEADER(8'hcc))  //帧头 
+    #(.HEADER(8'hcc))  //header 
     data_gen_inst
     (
         .dec_s  (dec_s  ),

@@ -1,28 +1,28 @@
-//利用gardner算法计算定时误差,并通过环路滤波器得到小数间隔
-//同时得出最佳判决点的两路输出数据
+//Calculate the timing error using gardner's algorithm and obtain fractional intervals by loop filtering
+//Simultaneously derive the two output data for the best judgment point
 module gardner_ted
 (
     input wire          clk             ,  //500kHz
     input wire          rst_n           ,
-    input wire          strobe_flag     ,  //有效插值标志
-    input wire [19:0]   interpolate_I   ,  //从插值滤波器来的I路数据
-    input wire [19:0]   interpolate_Q   ,  //从插值滤波器来的Q路数据
+    input wire          strobe_flag     ,  //Valid Interpolation Flags
+    input wire [19:0]   interpolate_I   ,  //I-channel data from interpolation filters
+    input wire [19:0]   interpolate_Q   ,  //Q-way data from the interpolation filter
     
-    output reg          sync_out_I      ,  //判决后的I路数据
-    output reg          sync_out_Q      ,  //判决后的Q路数据
-    output reg          sync_flag       ,  //同步标志，代表最佳判决点已到来,与输出的判决数据对齐
-    output reg [15:0]   wn                 //通过环路滤波器后误差数据
+    output reg          sync_out_I      ,  //I-way data after judgment
+    output reg          sync_out_Q      ,  //Q-way data after judgment
+    output reg          sync_flag       ,  //Synchronization flag, representing that the best judgment point has arrived, aligned with the output judgment data
+    output reg [15:0]   wn                 //Error data after passing through the loop filter
 );
 
-    reg [21:0]  error               ; //gardner算法计算出的时间误差
-    //用于误差数据缓存
+    reg [21:0]  error               ; //Time error calculated by gardner's algorithm
+    //For error data caching
     reg [21:0]  error_d1            ;
     
-    //寄存strobe_flag的次数
+    //Number of times strobe_flag has been hosted
     reg [7:0]   strobe_cnt          ;
     
     
-    //用于计算误差的采样数据缓存
+    //Sampling data cache for error calculation
     reg [19:0]  interpolate_I_d1    ;  
     reg [19:0]  interpolate_I_d2    ;   
     reg [19:0]  interpolate_Q_d1    ;
@@ -30,8 +30,8 @@ module gardner_ted
 
     wire        samp_flag           ;
     
-    //sync_flag是samp_flag打一拍,使得sync_flag正好与经过判决后的输出数据对齐
-    //后续在sync_flag高电平时采集判决数据即可
+    //sync_flag is samp_flag by one beat, so that sync_flag is exactly aligned with the output data after the judgment.
+    //Subsequent acquisition of judgment data when sync_flag is high is sufficient
     always @ (posedge clk or negedge rst_n) begin
         if(rst_n == 1'b0) begin
             sync_flag <= 1'b0;
@@ -42,14 +42,15 @@ module gardner_ted
 
     
     
-    //最佳抽样判决时刻标志
-    //NCO输出第一个strobe_flag时已经到达第一个最佳抽判时刻
-    //故strobe_cnt == 0且strobe_flag高电平到来代表最佳抽判时刻
+    //Best Sampling Judgment Moment Markers
+    //The NCO outputs the first strobe_flag when it has reached the first optimal pumping judgment moment
+    //Therefore, strobe_cnt == 0 and strobe_flag arrives high to represent the best moment to draw judgment.
     assign samp_flag = ((strobe_cnt == 0) && strobe_flag)?1'b1: 1'b0;
     
     
-    //计算strobe_flag的次数，也是nco溢出的次数，strobe_flag出现在最佳抽判时刻以及最佳抽判时刻中央
-    //strobe_cnt在本案例中为0、1之间计数
+    //The number of times strobe_flag is counted, and also the number of times nco overflows, 
+        //strobe_flag occurs at the optimal draw judgment moment as well as at the central optimal draw judgment moment
+    //strobe_cnt counts between 0 and 1 in this case
     always @ (posedge clk or negedge rst_n) begin
         if(rst_n == 1'b0) begin
             strobe_cnt <= 8'd0;
@@ -63,10 +64,10 @@ module gardner_ted
     end
     
 
-    //采集最佳判决时刻以及中间时刻的数据
-    //依据Gardner算法计算误差
-    //每一个码元符号只需要计算一次误差即可
-    //并将得到的时间误差数据通过环路滤波，得到小数间隔
+    //Collecting data at the optimal moment of judgment as well as at intermediate moments
+    //Calculation of errors based on Gardner's algorithm
+    //The error needs to be calculated only once for each code element symbol
+    //and the resulting time error data is filtered through the loop to obtain the fractional interval
     always @ (posedge clk or negedge rst_n) begin
         if(rst_n == 1'b0) begin
             interpolate_I_d1 <= 20'b0;
@@ -74,15 +75,15 @@ module gardner_ted
             interpolate_Q_d1 <= 20'b0;
             interpolate_Q_d2 <= 20'b0;
             
-            //这里环路滤波器输出w(n)初始值≈1/100，
-            //100代表I\Q路数据每一个码元采样数(本案例为200)的一半
+            //Here the loop filter output w(n) has an initial value of ≈1/100, the
+            //100 represents half of the number of samples per code element (200 in this case) of I\Q road data
             wn <= 16'b0000_0001_0100_0111;  
             error <= 22'b0;
             error_d1 <= 22'b0;
 
         end else if(strobe_flag) begin
-            //最佳判决时刻及判决时刻中间的时刻到来
-            //更新用于计算误差的数据
+            //The Best Moment of Judgment and the Moment Between Moments of Judgment Arrive
+            //Update the data used to calculate the error
             interpolate_I_d1 <= interpolate_I;
             interpolate_I_d2 <= interpolate_I_d1;
 
@@ -90,68 +91,68 @@ module gardner_ted
             interpolate_Q_d2 <= interpolate_Q_d1;
             
             if(samp_flag) begin
-            //最佳判决时刻到来
-            //计算并更新定时误差
+            //The best moment of judgment has arrived.
+            //Calculate and update timing errors
             //μt(k)=I(k-1/2)[I(k)−I(k−1)]
-            //依据符号位的不同，通过移位操作实现*2以及*(-2)
+            //Depending on the sign bit, *2 and *(-2) are realized by shifting operations.
                 case({interpolate_I[19],interpolate_I_d2[19],interpolate_Q[19],interpolate_Q_d2[19]})
                     4'b1010:begin
-                        //IQ两路都是[I(k)−I(k−1)] < 0 ,两路都将中间值*(-2)并相加得到error
-                        //符号位需要扩展
+                        //IQ both ways [I(k)-I(k-1)] < 0 ,both ways take the middle value *(-2) and add to get error
+                        //Symbol bits need to be extended
                         error <= ~({interpolate_I_d1[19],interpolate_I_d1[19:0],1'b0})+20'b1 + ~({interpolate_Q_d1[19],interpolate_Q_d1[19:0],1'b0})+20'b1;
                     end
                     4'b1001:begin
-                        //I路[I(k)−I(k−1)]<0,Q路[I(k)−I(k−1)]>0,
-                        //I路将中间值*(-2),Q路将中间值*2
+                        //I path [I(k)-I(k-1)]<0,Q path [I(k)-I(k-1)]>0,
+                        //I road will be the middle value *(-2), Q road will be the middle value *2
                         error <= ~({interpolate_I_d1[19],interpolate_I_d1[19:0],1'b0})+20'b1 + {interpolate_Q_d1[19],interpolate_Q_d1[19:0],1'b0};
                     end
                     4'b0110: begin
-                        //I路[I(k)−I(k−1)]>0,Q路[I(k)−I(k−1)]<0,
-                        //I路将中间值*2,Q路将中间值*(-2)
+                        //I path [I(k)-I(k-1)]>0,Q path [I(k)-I(k-1)]<0,
+                        //I road will be the median value *2, Q road will be the median value *(-2)
                         error <= {interpolate_I_d1[19],interpolate_I_d1[19:0],1'b0} + ~({interpolate_Q_d1[19],interpolate_Q_d1[19:0],1'b0})+20'b1;
                     end
                     4'b0101:begin
-                        //I路[I(k)−I(k−1)]>0,Q路[I(k)−I(k−1)]>0,
-                        //I路将中间值*2,Q路将中间值*2 
+                        //I path [I(k)-I(k-1)]>0,Q path [I(k)-I(k-1)]>0,
+                        //I road will be the middle value *2, Q road will be the middle value *2
                         error <= {interpolate_I_d1[19],interpolate_I_d1[19:0],1'b0} + {interpolate_Q_d1[19],interpolate_Q_d1[19:0],1'b0};                   
                     end
                     4'b0100,4'b0111:begin
-                        //I路[I(k)−I(k−1)]>0,Q路[I(k)−I(k−1)]=0
-                        //I路将中间值*2
+                        //I path [I(k)-I(k-1)] > 0,Q path [I(k)-I(k-1)] = 0
+                        //I road will be the middle value *2
                         error <= {interpolate_I_d1[19],interpolate_I_d1[19:0],1'b0};
                     end
                     4'b1000,4'b1011:begin
-                        //I路[I(k)−I(k−1)]<0,Q路[I(k)−I(k−1)]=0
-                        //I路将中间值*(-2)
+                        //I path [I(k)-I(k-1)] < 0, Q path [I(k)-I(k-1)] = 0
+                        //I-way will be the median *(-2)
                         error <= ~({interpolate_I_d1[19],interpolate_I_d1[19:0],1'b0})+20'b1;
                     end
                     4'b0001,4'b1101:begin
-                        //I路[I(k)−I(k−1)]=0,Q路[I(k)−I(k−1)]>0
-                        //Q路将中间值*2
+                        //I path [I(k)-I(k-1)]=0,Q path [I(k)-I(k-1)]>0
+                        //Q-way will be median *2
                         error <= {interpolate_Q_d1[19],interpolate_Q_d1[19:0],1'b0};                        
                     end
                     4'b0010,4'b1110:begin
-                        //I路[I(k)−I(k−1)]=0,Q路[I(k)−I(k−1)]<0
-                        //Q路将中间值*(-2)
+                        //I path [I(k)-I(k-1)]=0,Q path [I(k)-I(k-1)]<0
+                        //Q-way will be the median *(-2)
                         error <= ~({interpolate_Q_d1[19],interpolate_Q_d1[19:0],1'b0})+20'b1;
                     end
                     default: begin
                         error <= 22'b0;
                     end
                 endcase
-            //输出判决数据,判决门限设为0,故判决符号位即可
+            //The judgment data is output, and the judgment threshold is set to 0, so the judgment sign bit can be used.
                 sync_out_I <= ~interpolate_I[19];
                 sync_out_Q <= ~interpolate_Q[19];
-            //每个最佳判决时刻更新一次error数据
+            //The error data is updated once per optimal judgment moment
                 error_d1 <= error;
                 
-            //通过环路滤波器计算小数间隔
+            //Calculating fractional intervals through loop filters
             //w(ms+1)=w(ms)+c1*(err(ms)-err(ms-1))+c2*err(ms), c1 = 2^(-8)， c2≈0
                 wn = wn + ({{2{error[21]}},error[21:8]}-{{2{error_d1[21]}},error_d1[21:8]});
             end
             
         end else begin
-            //其他时刻数据保持不变
+            //Other moments of data remain unchanged
             interpolate_I_d1 <= interpolate_I_d1;
             interpolate_I_d2 <= interpolate_I_d2;
             interpolate_Q_d1 <= interpolate_Q_d1;

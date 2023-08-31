@@ -1,20 +1,20 @@
 `timescale 1ns / 1ps
-//将40bit数据中的时分秒数据进行解析并动态显示在数码管上
+//Parses and dynamically displays hour, minute, and second data from 40bit data on a digital tube.
 module time_display
 (
     input   wire        clk     ,
     input   wire        rst_n   ,
     input   wire[39:0]  dat_i   ,
     
-    output  wire[5:0]   sel     ,  //数码管选择信号
-    output  wire[7:0]   dig        //数码管数据
+    output  wire[5:0]   sel     ,  //Digital tube selection signal
+    output  wire[7:0]   dig        //Digital tube data
 );
-    //时分秒原始数据
+    //Raw data of hours, minutes and seconds
     wire [7:0]      dec_h       ;
     wire [7:0]      dec_m       ;
     wire [7:0]      dec_s       ;
     
-    //时分秒对应的bcd数据
+    //bcd data for hours, minutes and seconds
     wire [3:0]      bcd_h_ten   ;
     wire [3:0]      bcd_h_unit  ;
     wire [3:0]      bcd_m_ten   ;
@@ -22,14 +22,14 @@ module time_display
     wire [3:0]      bcd_s_ten   ;
     wire [3:0]      bcd_s_unit  ;
     
-    //依据对应数据位解析时分秒
+    //Parse hour, minute and second according to the corresponding data bits
     assign dec_h = dat_i[31:24] ;
     assign dec_m = dat_i[23:16] ;
     assign dec_s = dat_i[15:8]  ;
     
     
-    //将原始数据转换为BCD编码
-    //时
+    //Convert raw data to BCD code
+    //hour
     dec2bcd dec2bcd_h(
         .clk        (clk    ),
         .rst_n      (rst_n  ),
@@ -39,7 +39,7 @@ module time_display
         .ten        (bcd_h_ten  )   
     );
     
-    //分
+    //ingredient
     dec2bcd dec2bcd_m(
         .clk        (clk    ),
         .rst_n      (rst_n  ),
@@ -49,7 +49,7 @@ module time_display
         .ten        (bcd_m_ten  )   
     );
     
-    //秒
+    //unit of angle or arc equivalent one sixtieth of a degree
     dec2bcd dec2bcd_s(
         .clk        (clk    ),
         .rst_n      (rst_n  ),
@@ -59,7 +59,7 @@ module time_display
         .ten        (bcd_s_ten  )   
     );
     
-    //数码管显示控制信号生成
+    //Digital tube display control signal generation
     seg_display 
     #(.CNT_SEL_MAX(10'd999))
     seg_display_inst

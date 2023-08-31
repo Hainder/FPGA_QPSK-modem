@@ -1,7 +1,7 @@
 module clk_gen
 #(parameter CNT_MAX = 26'd49_999_999)
 (
-    input wire          clk     ,  //50Mhz时钟
+    input wire          clk     ,  //50Mhz clock
     input wire          rst_n   ,
     
     output reg[7:0]     s_dec   ,
@@ -9,7 +9,7 @@ module clk_gen
     output reg[7:0]     h_dec       
     );
     
-    reg [25:0] cnt;     //用于计时，作为标准
+    reg [25:0] cnt;     //Used for timing, as standard
     
     
     //cnt
@@ -27,9 +27,9 @@ module clk_gen
     always @ (posedge clk or negedge rst_n) begin
         if(!rst_n) begin
             s_dec <= 8'd0;
-        end else if((cnt == CNT_MAX) && (s_dec == 8'd59)) begin  //秒计数到59
+        end else if((cnt == CNT_MAX) && (s_dec == 8'd59)) begin  //Seconds count to 59.
             s_dec <= 8'd0;
-        end else if(cnt == CNT_MAX) begin  //没有计数到最大值就在满足1秒时自增
+        end else if(cnt == CNT_MAX) begin  //Increments itself when 1 second is reached without counting to the maximum value.
             s_dec <= s_dec + 8'd1;
         end else begin
             s_dec <= s_dec;
@@ -40,9 +40,9 @@ module clk_gen
     always @ (posedge clk or negedge rst_n) begin
         if(!rst_n) begin
             m_dec <= 8'd0;
-        end else if((cnt == CNT_MAX) && (s_dec == 8'd59) && (m_dec == 8'd59)) begin  //分计数到59并满足跳转条件
+        end else if((cnt == CNT_MAX) && (s_dec == 8'd59) && (m_dec == 8'd59)) begin  //Count to 59 and fulfill the jump condition
             m_dec <= 8'd0;
-        end else if((cnt == CNT_MAX) && (s_dec == 8'd59)) begin  //没有计数到最大值就在秒针清零时自增
+        end else if((cnt == CNT_MAX) && (s_dec == 8'd59)) begin  //Self-increment when the second hand is cleared without counting to the maximum value.
             m_dec <= m_dec + 8'd1;
         end else begin
             m_dec <= m_dec;
@@ -53,10 +53,10 @@ module clk_gen
     always @ (posedge clk or negedge rst_n) begin
         if(!rst_n) begin
             h_dec <= 8'd0;
-            //时计数到23：59：59并满足跳转条件
+            //The time count reaches 23:59:59 and meets the jump condition
         end else if((cnt == CNT_MAX) && (s_dec == 8'd59) && (m_dec == 8'd59) && (h_dec == 8'd23)) begin  
             h_dec <= 8'd0;
-            //没有计数到最大值就在分针、秒针清零时自增
+            //Self-increment when the minute and second hands are cleared without counting to the maximum value.
         end else if((cnt == CNT_MAX) && (s_dec == 8'd59) && (m_dec == 8'd59)) begin  
             h_dec <= h_dec + 8'd1;
         end else begin

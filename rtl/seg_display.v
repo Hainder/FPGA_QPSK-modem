@@ -1,4 +1,4 @@
-//数码管显示驱动模块
+//Digital Tube Display Driver Module
 module seg_display
 #(parameter CNT_SEL_MAX = 10'd999)
 (
@@ -16,10 +16,10 @@ module seg_display
 );
     
 
-    reg [9:0] cnt_sel;      //计数器，用于控制扫描速度
+    reg [9:0] cnt_sel;      //Counter to control scanning speed
 
-    reg [3:0] display_data;  //某一个特定字段的输出数据
-    parameter DIG0 = 8'hc0,  //输出对应字段所需的输出Dig信号
+    reg [3:0] display_data;  //Output data for a particular field
+    parameter DIG0 = 8'hc0,  //Outputs the output Dig signal required for the corresponding field
               DIG1 = 8'hf9,
               DIG2 = 8'ha4,
               DIG3 = 8'hb0,
@@ -31,7 +31,7 @@ module seg_display
               DIG9 = 8'h90,
               DIG_ALL = 8'h00;
              
-    //cnt_sel控制扫描速度
+    //cnt_sel controls the scanning speed
     always @ (posedge clk or negedge rst_n) begin
         if(!rst_n) begin
             cnt_sel <= 10'd0;
@@ -44,12 +44,12 @@ module seg_display
     end
 
     //sel
-    //扫描数码管的选择信号
+    //Selection signals for scanning digital tubes
     always @ (posedge clk or negedge rst_n) begin
         if(!rst_n) begin
             sel <= 6'b111110;
         end else if(cnt_sel == CNT_SEL_MAX) begin
-            sel <= {sel[4:0],sel[5]};  //循环左移
+            sel <= {sel[4:0],sel[5]};  //Cyclic left shift
         end else begin
             sel <= sel;
         end
@@ -57,7 +57,7 @@ module seg_display
     
     
     //display_data
-    //依据sel信号选择需要输出的数据
+    //Select the data to be output according to the sel signal.
     always @ (*) begin
         case(sel) 
             6'b111110: begin

@@ -1,4 +1,4 @@
-//产生500kHz采样时钟
+//Generates 500kHz sample clock
 module sam_clk_gen(
         input wire      clk     ,  //50MHz
         input wire      rst_n   ,
